@@ -6,7 +6,7 @@ Ficheros:
 |---|---|
 | `index.html` | Página: lienzo 4:3, portada con «Jugar», barra de progreso y botones de partidas |
 | `config.js` | Configuración: versión del motor, ruta de los datos, sufijo, carpeta local, clave de partidas |
-| `player.js` | Toda la lógica (descarga, arranque, lectura por trozos, partidas) |
+| `player.js` | Toda la lógica (descarga, arranque, partidas) |
 | `svm-worker.js` | Web Worker que descarga los datos al almacén privado del navegador (OPFS) |
 | `player.css` | Estilos |
 | `diag.html` + `diag.js` | Diagnóstico del navegador y de la copia local |
@@ -24,11 +24,11 @@ Ficheros:
             · fetch(dataBase/index.json)
             · Worker: descarga de cada fichero → OPFS (6 a la vez… 3 en el worker actual)
             · abrir los File de OPFS
-            · modo «mem»: copiar los ficheros a /.cache/scummvm/data/games/<target>/
-              modo «slice»: nada (se leerán por trozos)
+            · copiar los ficheros enteros a /.cache/scummvm/data/games/<target>/ (MEMFS, ~486 MB)
+            · ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = "body" (el teclado de SDL escucha en la página)
             · removeRunDependency("hm-datos")  ← arranca el motor
         ─► ScummVM: -c /scummvm.ini [-b escena] hollywood
-        ─► «Running Hollywood Monsters (Windows/Spanish)» ─► portada fuera cuando el lienzo pinta (tope 25 s)
+        ─► «Running Hollywood Monsters (Windows/Spanish)» ─► portada fuera y foco en el lienzo
 ```
 
 ## Descarga al almacén local (OPFS)
@@ -40,21 +40,15 @@ Ficheros:
 - Carpeta: `HM_CONFIG.storageDir` (por defecto `hm-scummvm`); ficheros `<target>_<nombre>`.
 - `?svmfresh=1` borra esa carpeta y la carpeta persistente de ScummVM (`IndexedDB /home/web_user`) y descarga de nuevo.
 
-## Dos modos de lectura de datos
+## Datos en memoria
 
-| Modo | Cómo | Memoria | Cuándo |
-|---|---|---|---|
-| `mem` | Los 128 ficheros se copian al sistema de ficheros en memoria de Emscripten (`/.cache/...`); ScummVM los encuentra ahí | ~500 MB extra | Por defecto si `navigator.deviceMemory >= 8` |
-| `slice` | ScummVM lee por trozos de 1 MB con `HTTPRangeStream`; cada trozo es un `blob:` de `File.slice()` de la copia local, pedido con XHR síncrono | Caché de ≤96 MB | Por defecto con menos memoria |
+Desde el 16-oct (arreglo de Gustavo Grieco) el motor es ScummVM **sin parches**. Su sistema de ficheros HTTP, al
+abrir un fichero, mira primero en `/.cache/...`; el reproductor deja allí los 128 ficheros (~486 MB) copiados de la
+copia local (OPFS), así el motor nunca descarga nada por su cuenta.
 
-Se fuerza con `?svmmode=mem` o `?svmmode=slice`.
-
-### Detalle del modo `slice`
-
-- El motor llama a `window.svmRangeUrl(url, inicio, longitud)`. El reproductor quita el sufijo, busca el `File` de
-  OPFS por nombre y devuelve `{url: URL.createObjectURL(file.slice(inicio, inicio + longitud))}`.
-- El motor lo pide con XHR síncrono y luego llama a `window.svmRangeDone(objeto)`, que revoca la URL.
-- Si el fichero no está en local, `svmRangeUrl` devuelve la URL de red y el motor la pide con `Range`.
+Coste: la pestaña tiene los datos del juego enteros en memoria. Hasta el 16-oct había un modo «por trozos» con un
+parche propio (ver [PARCHE.md](PARCHE.md)) pensado para equipos de 4 GB; se quitó porque las lecturas síncronas
+colgaban el navegador en algunos equipos.
 
 ## Partidas
 
@@ -90,8 +84,6 @@ Emscripten está ligado a su `.wasm` (tabla `ASM_CONSTS`): si el navegador combi
 | Opción | Efecto |
 |---|---|
 | `?boot=1010` | Arranca directamente en una escena (opción `-b` de ScummVM; útil para pruebas: 1010 es una escena jugable del principio) |
-| `?svmmode=mem` / `slice` | Fuerza el modo de lectura de datos |
-| `?svmgfx=soft` | Render de SDL por software, sin WebGL (requiere el parche) |
 | `?svmfresh=1` | Borra la copia local y la carpeta persistente de ScummVM y descarga de nuevo |
 
 ## Requisitos del servidor (despliegue)
@@ -101,7 +93,7 @@ Emscripten está ligado a su `.wasm` (tabla `ASM_CONSTS`): si el navegador combi
 - `application/wasm` como tipo MIME de `.wasm` (casi todos los servidores ya lo hacen).
 - No hace falta aislamiento de origen (`COOP`/`COEP`): este motor no usa hilos.
 - Si usas **CSP**, todo el JS está en ficheros externos (sin scripts en línea); necesitas `'wasm-unsafe-eval'` en
-  `script-src` y `blob:` en `connect-src` (lectura de trozos).
+  `script-src`.
 - Caché recomendada: el motor y los datos del juego, inmutables (llevan versión o no cambian); `index.html`,
   `player.js` y `config.js`, sin caché o cortos.
 - Para probar en local: `cd web && python3 -m http.server 8000` y abrir `http://localhost:8000/`.

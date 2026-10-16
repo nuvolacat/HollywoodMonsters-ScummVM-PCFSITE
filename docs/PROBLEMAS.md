@@ -1,6 +1,13 @@
 # Problemas abiertos
 
-## 1. El navegador se cuelga en algunos equipos (prioritario)
+## 1. El navegador se cuelga en algunos equipos — RESUELTO (16-oct-2026)
+
+**Resuelto con el arreglo de Gustavo Grieco**: motor de ScummVM sin nuestro parche y datos enteros en memoria. El
+MacBook que se colgaba ya lo juega sin problemas. Lo que queda abajo es el análisis que se hizo antes del arreglo; la
+hipótesis 2 (bloqueo por las lecturas síncronas por trozos) era la más probable.
+
+**Abierto**: no se ha medido el consumo de memoria en equipos de 4 GB, donde la descarga completa en memoria se colgaba
+antes de existir la copia local (OPFS).
 
 ### Síntoma
 

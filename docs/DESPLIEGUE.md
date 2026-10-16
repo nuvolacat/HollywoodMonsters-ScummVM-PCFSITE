@@ -51,8 +51,8 @@ server {
 
 ## 4. Actualizar el motor
 
-Cada compilación nueva con un número nuevo (`scummvm-7.*`) y `engineVersion: 7` en `config.js`. No sobrescribas
-nunca `scummvm-6.*` con otra compilación: con caché inmutable, un navegador podría mezclar el `.js` viejo con el
+Cada compilación nueva con un número nuevo (`scummvm-8.*`) y `engineVersion: 8` en `config.js`. No sobrescribas
+nunca `scummvm-7.*` con otra compilación: con caché inmutable, un navegador podría mezclar el `.js` viejo con el
 `.wasm` nuevo (ver [REPRODUCTOR.md](REPRODUCTOR.md#versiones-del-motor)).
 
 ## 5. CDN

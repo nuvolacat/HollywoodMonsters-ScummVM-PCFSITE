@@ -127,3 +127,16 @@ Cada punto tiene detalle en `REPRODUCTOR.md` y `PARCHE.md`.
   se cuelga tras pulsar «Jugar». El diagnóstico de ese equipo está limpio. Detalle y pistas en `PROBLEMAS.md`.
 - Por eso el juego se **retiró** de la web pública a la espera de resolverlo, y se abre este repositorio para que la
   comunidad ayude.
+
+### 2.6 El arreglo de Gustavo Grieco (16-oct)
+
+Gustavo Grieco (neuromancer), autor del motor `hollywood` en ScummVM, propuso un cambio mínimo:
+
+- compilar la cabeza del PR (`689f26c7`) **sin parches**, en modo release: la corrección de audio ya estaba upstream;
+- exponer `ENV` de Emscripten para dirigir el teclado de SDL a la página (`SDL_EMSCRIPTEN_KEYBOARD_ELEMENT`);
+- cargar los datos enteros en memoria en vez de leerlos por trozos con XHR síncrono;
+- quitar la portada en cuanto arranca el motor y bloquear el menú contextual del lienzo.
+
+Se revisó el cambio (solo commits de neuromancer dentro de `engines/hollywood`, sin binarios ni direcciones nuevas), se
+compiló como versión 7 y se probó: el MacBook que se colgaba lo juega sin problemas. El juego volvió a publicarse.
+
