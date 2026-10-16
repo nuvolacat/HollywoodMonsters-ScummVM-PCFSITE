@@ -1,0 +1,3 @@
+Copia aquí el contenido de la carpeta MONSTERS de tu CD de Hollywood Monsters (2ª edición, español)
+y ejecuta: python3 tools/make-index.py web/scummvm/data/games/hollywood web/scummvm/data/games/hollywood
+Ver docs/DATOS.md.

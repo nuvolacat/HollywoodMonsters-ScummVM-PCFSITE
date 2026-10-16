@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hollywood Monsters · ScummVM en el navegador</title>
+<link rel="stylesheet" href="player.css">
+</head>
+<body>
+<main>
+  <h1>Hollywood Monsters <small>ScummVM · WebAssembly</small></h1>
+  <section id="stage">
+    <div id="frame">
+      <canvas id="canvas" tabindex="-1" hidden></canvas>
+      <div id="overlay">
+        <button id="play" type="button">▶ Jugar</button>
+        <label class="chk"><input type="checkbox" id="persist" checked> Continuar con mi partida guardada</label>
+        <div id="bar"><i></i></div>
+        <p id="msg"></p>
+        <p id="hint"></p>
+      </div>
+    </div>
+    <div class="ctrls">
+      <button id="savenow" type="button">Guardar partidas ahora</button>
+      <button id="export" type="button">Descargar copia (.hmsave)</button>
+      <label class="btn">Restaurar copia<input type="file" id="import" accept=".hmsave" hidden></label>
+      <button id="fs" type="button">Pantalla completa</button>
+      <span id="saved"></span>
+    </div>
+  </section>
+  <p class="nota">Necesitas los datos de tu CD original: consulta <code>docs/DATOS.md</code>. Diagnóstico del navegador: <a href="diag.html">diag.html</a>.</p>
+</main>
+<script src="config.js"></script>
+<script src="player.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Datos del juego: NUNCA al repositorio (copyright). Cada uno pone los de su CD (docs/DATOS.md).
+web/scummvm/data/games/hollywood/*
+!web/scummvm/data/games/hollywood/LEEME.txt
+*.iso
+*.bin
+*.mdf
+*.mds
+.build/
+.DS_Store
+__pycache__/
