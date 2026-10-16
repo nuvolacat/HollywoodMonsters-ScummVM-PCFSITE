@@ -6,16 +6,13 @@
  *  3. Se carga el motor: /scummvm/scummvm-<N>.js + .wasm (pareja con la versión EN EL NOMBRE).
  *  4. preRun: se escribe /scummvm.ini, se restauran las partidas en /saves y se BLOQUEA el arranque
  *     (addRunDependency) mientras un Web Worker descarga los ficheros del juego DIRECTAMENTE al almacén
- *     privado del navegador (OPFS) con FileSystemSyncAccessHandle. La pestaña no retiene los ~490 MB.
- *  5. Se abren esos ficheros como File y se desbloquea el arranque.
- *  6. ScummVM lee los datos por trozos de 1 MB con su sistema de ficheros HTTP (parcheado: HTTPRangeStream).
- *     Cada lectura pregunta a window.svmRangeUrl(url, inicio, longitud), que devuelve un blob: del trozo
- *     ya recortado de la copia local; el motor lo lee con un XMLHttpRequest SÍNCRONO (sin Asyncify).
+ *     privado del navegador (OPFS) con FileSystemSyncAccessHandle.
+ *  5. Se cargan los ficheros completos en MEMFS (~486 MiB) y se desbloquea el arranque.
+ *  6. El backend HTTP de ScummVM los encuentra en su caché, sin parches ni lectura por trozos.
  *  7. Partidas: ScummVM guarda en /saves (memoria); cada 10 s se empaqueta /saves (formato PCFSVM01) y se
  *     guarda en IndexedDB si ha cambiado. Se puede descargar/restaurar como fichero .hmsave.
  *
- * Opciones por URL (pruebas): ?boot=<escena> · ?svmgfx=soft (render SDL sin WebGL) · ?svmfresh=1 (borra la copia
- * local del juego y la carpeta persistente de ScummVM) · ?svmmode=mem|slice (datos en memoria o por trozos).
+ * Opciones por URL: ?boot=<escena> · ?svmfresh=1 (borra la copia local del juego y la carpeta persistente de ScummVM).
  */
 (function () {
   "use strict";
@@ -24,12 +21,13 @@
   var ov = $("#overlay"), cv = $("#canvas");
   var phase = "idle", overlayHidden = false, persistOn = true, lastSig = "", svmFS = null;
   var svmFiles = {}, svmEstado = {};
+  cv.addEventListener("contextmenu", function (e) { e.preventDefault(); });
 
   // ---------- interfaz ----------
   function setMsg(m, h) { $("#msg").textContent = m; if (h !== undefined) $("#hint").textContent = h; }
   function setPct(p) { $("#bar>i").style.width = Math.max(0, Math.min(100, p)) + "%"; }
   function flash(t) { var e = $("#saved"); e.textContent = t; clearTimeout(flash.t); flash.t = setTimeout(function () { e.textContent = ""; }, 4000); }
-  function hideOverlay() { if (overlayHidden) return; overlayHidden = true; setPct(100); setTimeout(function () { ov.classList.add("hidden"); }, 400); }
+  function hideOverlay() { if (overlayHidden) return; overlayHidden = true; setPct(100); ov.classList.add("hidden"); cv.focus({ preventScroll: true }); }
 
   // ---------- partidas: IndexedDB del navegador ----------
   var idb = {
@@ -97,17 +95,6 @@
       }).then(function () { svmEstado = {}; return r; });
     });
   }
-  // El motor (http-fs.cpp parcheado) pide cada trozo con un XHR síncrono a la URL que devuelva esta función.
-  // Devolver {url} = trozo ya recortado (blob: de File.slice); devolver una URL normal = se pide con cabecera Range.
-  window.svmRangeUrl = function (url, start, len) {
-    var name = url.split("/").pop();
-    if (C.dataSuffix && name.slice(-C.dataSuffix.length) === C.dataSuffix) name = name.slice(0, -C.dataSuffix.length);
-    var f = svmFiles[name];
-    if (!f) return url;
-    return { url: URL.createObjectURL(f.slice(start, start + len)) };
-  };
-  window.svmRangeDone = function (r) { try { URL.revokeObjectURL(r.url); } catch (e) {} };
-
   // ---------- arranque ----------
   function start() {
     $("#play").style.display = "none"; document.querySelector(".chk").style.display = "none"; $("#bar").style.display = "block";
@@ -123,23 +110,14 @@
       print: function (t) {
         console.log(t);
         if (/^Running /.test(t) && phase !== "game") {
-          // el motor tarda en montar la primera escena (pantalla negra): la portada sigue hasta que el lienzo pinta algo
-          phase = "game"; setPct(96); setMsg("Cargando Hollywood Monsters…", "el juego tarda unos segundos en arrancar: empieza con la intro");
-          var t0 = Date.now(), probe = document.createElement("canvas"); probe.width = 32; probe.height = 24;
-          var pctx = probe.getContext("2d", { willReadFrequently: true });
-          var chk = setInterval(function () {
-            var el = (Date.now() - t0) / 1000, pintado = false;
-            try { pctx.drawImage(cv, 0, 0, 32, 24); var d = pctx.getImageData(0, 0, 32, 24).data; for (var i = 0; i < d.length; i += 4) { if (d[i] + d[i + 1] + d[i + 2] > 60) { pintado = true; break; } } } catch (e) {}
-            // con WebGL, drawImage del lienzo puede devolver negro aunque se vea (preserveDrawingBuffer=false): tope de 25 s
-            if (pintado || el > 25) { clearInterval(chk); hideOverlay(); }
-          }, 2000);
+          phase = "game"; hideOverlay();
         }
       },
       printErr: function (t) { console.warn(t); },
       onExit: function () { phase = "exit"; ov.classList.remove("hidden"); overlayHidden = false; setMsg("El juego se ha cerrado", "recarga la página para volver a jugar"); },
       preRun: [function () {
         svmFS = window.FS;
-        if (qs.get("svmgfx") === "soft") window.svmSoftRender = true;   // el backend (emscripten.cpp parcheado) fija SDL_HINT_RENDER_DRIVER=software
+        Module.ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = "body";
         svmFS.writeFile("/scummvm.ini", ini);
         svmFS.mkdir("/saves");
         if (saved) unpack(saved).forEach(function (p) { svmFS.writeFile("/saves/" + p.n, p.d); });
@@ -167,10 +145,6 @@
             });
           })
           .then(function (r) {
-            // modo «mem» (memoria de sobra): ficheros enteros al sistema de ficheros de ScummVM; «slice»: trozos desde OPFS
-            var modo = qs.get("svmmode") || ((navigator.deviceMemory || 8) >= 8 ? "mem" : "slice");
-            console.log("datos del juego:", r.names.length, "ficheros · modo", modo);
-            if (modo !== "mem") return r;
             var cacheDir = "/.cache/scummvm/data/games/" + C.target;
             svmFS.mkdirTree(cacheDir); setPct(93); setMsg("Cargando datos en memoria…", "");
             return r.names.reduce(function (pr, n) {
