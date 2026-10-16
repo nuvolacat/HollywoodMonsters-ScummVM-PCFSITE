@@ -25,7 +25,7 @@ navegador, el motor y la copia local de los datos.
 | `almacén local (OPFS): …error…` | Ventana privada o almacenamiento bloqueado | Ventana normal; permitir datos del sitio |
 | Cuota muy baja (< 1 GB) | No cabe la copia del juego (~486 MB) | Liberar espacio del disco |
 | `motor: HTTP 404` | Falta `scummvm-<N>.wasm` o `engineVersion` mal puesto | Revisar `config.js` |
-| `motor compilado` tarda > 10 s | Equipo lento | Probar `?svmmode=slice` |
+| `motor compilado` tarda > 10 s | Equipo lento | El juego también irá lento |
 | `no hay copia local` | Aún no se ha pulsado «Jugar» nunca | Normal |
 | `faltan` > 0 | La descarga se interrumpió | Volver a «Jugar»: completa lo que falta |
 | `corruptos` > 0 | Copia local dañada | `index.html?svmfresh=1` |

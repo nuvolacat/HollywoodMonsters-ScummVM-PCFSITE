@@ -14,12 +14,13 @@ Proyecto de la comunidad de **PCFSITE**. Se publica abierto para que cualquiera 
 | Arranca y se juega (2ª edición, español, Windows) | ✅ |
 | Guardar y cargar desde el menú del juego, con recuperación al recargar | ✅ |
 | Copia local de los datos (se descargan una vez) | ✅ |
-| Lectura por trozos para no tener 486 MB en memoria | ✅ |
+| Motor de ScummVM sin parches (rama del PR, compilación 7) | ✅ |
 | Funciona en Chromium/WebKit y en varios Mac con Edge y Safari | ✅ |
-| **En algunos equipos el navegador se cuelga al arrancar** | ❌ abierto, ver [PROBLEMAS.md](docs/PROBLEMAS.md) |
+| Cuelgue del navegador en algunos equipos | ✅ resuelto con el arreglo de Gustavo Grieco (16-oct), ver [PROBLEMAS.md](docs/PROBLEMAS.md) |
+| Memoria: los 486 MB del juego van enteros en la memoria de la pestaña | ⚠️ sin medir en equipos de 4 GB |
 
-Por ese cuelgue el juego está retirado de nuestra web hasta resolverlo. Si sabes de WebAssembly, Emscripten o
-ScummVM, tu ayuda es bienvenida.
+Con el arreglo de Gustavo Grieco el juego volvió a publicarse en nuestra web. Si sabes de WebAssembly, Emscripten o
+ScummVM, tu ayuda sigue siendo bienvenida.
 
 ## Probarlo en 5 minutos
 
@@ -33,7 +34,7 @@ cd web && python3 -m http.server 8000
 
 Abre <http://localhost:8000/> y pulsa **Jugar**. La primera vez copia los datos al almacén del navegador.
 
-Opciones útiles: `?boot=1010` (empieza en una escena jugable), `?svmmode=mem|slice`, `?svmgfx=soft`, `?svmfresh=1`.
+Opciones útiles: `?boot=1010` (empieza en una escena jugable), `?svmfresh=1`.
 Diagnóstico del equipo: <http://localhost:8000/diag.html>.
 
 ## Estructura
@@ -41,20 +42,19 @@ Diagnóstico del equipo: <http://localhost:8000/diag.html>.
 ```
 web/                 reproductor listo para servir (motor compilado incluido)
   config.js          lo que se suele cambiar: versión del motor, ruta de los datos…
-  player.js          descarga, arranque, lectura por trozos, partidas
+  player.js          descarga, arranque, partidas
   svm-worker.js      descarga al almacén local (OPFS) en un Worker
   diag.html/.js      diagnóstico del navegador y de la copia local
-  scummvm/           scummvm-6.js + scummvm-6.wasm + datos de interfaz de ScummVM
-patches/             parche sobre ScummVM (backend Emscripten)
+  scummvm/           scummvm-7.js + scummvm-7.wasm + datos de interfaz de ScummVM
 tools/
-  build-engine.sh    compila el motor con el parche
+  build-engine.sh    compila el motor (rama del PR, sin parches)
   make-index.py      genera index.json y hashes.json de tus datos
   e2e.mjs            prueba automática con Playwright (arrancar, guardar, recargar)
 docs/
   HISTORIA.md        todo lo que se probó y por qué se llegó aquí
   PROBLEMAS.md       problemas abiertos e hipótesis
   REPRODUCTOR.md     cómo funciona el reproductor
-  PARCHE.md          qué cambia el parche y por qué
+  PARCHE.md          el parche que usamos hasta el 16-oct (historia)
   COMPILAR.md        compilar el motor (web y nativo)
   DESPLIEGUE.md      publicarlo en un servidor
   DIAGNOSTICO.md     leer el diagnóstico
@@ -64,8 +64,8 @@ docs/
 ## Cómo ayudar
 
 1. Lee [docs/PROBLEMAS.md](docs/PROBLEMAS.md) y [docs/HISTORIA.md](docs/HISTORIA.md) para no repetir lo descartado.
-2. Si tu equipo se cuelga, comparte el diagnóstico y prueba las variantes.
-3. Si tienes una idea para el cuelgue (motor en un Worker, JSPI, lecturas sin XHR síncrono…), abre un issue o PR.
+2. Si tu equipo se cuelga o va lento, comparte el diagnóstico (`diag.html`) y tu equipo y navegador.
+3. Los fallos del propio juego van al PR de ScummVM; los de la web, a un issue o PR aquí.
 
 Detalles en [CONTRIBUIR.md](CONTRIBUIR.md).
 
@@ -73,13 +73,14 @@ Detalles en [CONTRIBUIR.md](CONTRIBUIR.md).
 
 - **ScummVM** y su equipo: <https://www.scummvm.org>.
 - El motor `hollywood` es obra de **neuromancer** y colaboradores, en el PR
-  [scummvm/scummvm#7868](https://github.com/scummvm/scummvm/pull/7868). Este proyecto solo añade el reproductor web
-  y un parche pequeño al backend de Emscripten.
+  [scummvm/scummvm#7868](https://github.com/scummvm/scummvm/pull/7868). Este proyecto solo añade el reproductor web.
+- **Gustavo Grieco** (neuromancer) aportó el arreglo que eliminó nuestro parche y resolvió el cuelgue del
+  navegador en algunos equipos.
 - **Hollywood Monsters** © Pendulo Studios. Distribuido en España por Dinamic Multimedia. Este proyecto no tiene
   relación con los titulares de los derechos.
 
 ## Licencia
 
 GPL-3.0 o posterior, como ScummVM. Ver [LICENSE](LICENSE). El motor compilado incluido (`web/scummvm/`) se
-distribuye bajo la licencia de ScummVM; su código fuente es la rama indicada en [docs/PARCHE.md](docs/PARCHE.md) más
-el parche de `patches/`.
+distribuye bajo la licencia de ScummVM; su código fuente es el commit de la rama del PR indicado en
+[docs/COMPILAR.md](docs/COMPILAR.md), sin modificaciones.

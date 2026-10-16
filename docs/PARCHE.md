@@ -1,4 +1,10 @@
-# El parche sobre ScummVM
+# El parche sobre ScummVM (historia: ya no se usa)
+
+> **Desde el 16-oct-2026 el motor se compila sin este parche.** Gustavo Grieco (neuromancer, autor del motor
+> `hollywood`) propuso compilar la rama del PR tal cual: la corrección de audio ya estaba upstream, y los datos van
+> enteros en memoria en vez de leerse por trozos. Con eso desapareció el cuelgue del navegador en algunos equipos.
+> El fichero del parche se borró del repositorio; sigue en el historial de git (commit `7950969`). Este documento se
+> conserva para explicar qué hacía y por qué.
 
 Fichero: `patches/0001-emscripten-lectura-por-trozos-y-render-software.patch`.
 Base: rama `dev-hollywood` de `github.com/neuromancer/scummvm`, commit `bf1025370c102a049d3af86649bec1dcbe8eb9dd`
